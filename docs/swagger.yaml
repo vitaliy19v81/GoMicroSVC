@@ -1,0 +1,123 @@
+definitions:
+  gorm.DeletedAt:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
+  models.CreateMessageRequest:
+    properties:
+      content:
+        description: validate:"required"`
+        type: string
+    type: object
+  models.CreateMessageResponse:
+    properties:
+      content:
+        type: string
+      id:
+        type: integer
+      processed:
+        type: boolean
+    type: object
+  models.Message:
+    properties:
+      content:
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      id:
+        type: integer
+      processed:
+        description: Устанавливаем значение по умолчанию для processed
+        type: boolean
+      updatedAt:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/message:
+    post:
+      consumes:
+      - application/json
+      description: Создает новое сообщение и сохраняет его в базе данных
+      parameters:
+      - description: Сообщение
+        in: body
+        name: message
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateMessageRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.CreateMessageResponse'
+        "400":
+          description: Неверный формат данных
+          schema:
+            type: string
+        "500":
+          description: Ошибка сервера
+          schema:
+            type: string
+      summary: Создание сообщения
+      tags:
+      - Api
+  /api/messages:
+    get:
+      description: Возвращает список сообщений с учетом offset и limit
+      parameters:
+      - default: 0
+        description: Смещение
+        in: query
+        name: offset
+        type: integer
+      - default: 10
+        description: Лимит
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Message'
+            type: array
+        "500":
+          description: Ошибка сервера
+          schema:
+            type: string
+      summary: Получение списка сообщений
+      tags:
+      - Api
+  /api/stats:
+    get:
+      description: Получает количество обработанных сообщений
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "500":
+          description: Ошибка сервера
+          schema:
+            type: string
+      summary: Получение статистики
+      tags:
+      - Api
+swagger: "2.0"

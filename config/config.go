@@ -7,13 +7,14 @@ import (
 )
 
 type Config struct {
-	Environment           string
 	KafkaBootstrapServers string
 	PostgresUser          string
 	PostgresPassword      string
 	PostgresDB            string
 	PostgresHost          string
 	PostgresPort          string
+	KafkaBrokers          string
+	KafkaTopic            string
 }
 
 func LoadConfig() Config {
@@ -23,12 +24,13 @@ func LoadConfig() Config {
 	}
 
 	return Config{
-		Environment:           os.Getenv("ENVIRONMENT"),
 		KafkaBootstrapServers: os.Getenv("KAFKA_BOOTSTRAP_SERVERS"),
 		PostgresUser:          os.Getenv("POSTGRES_USER"),
 		PostgresPassword:      os.Getenv("POSTGRES_PASSWORD"),
 		PostgresDB:            os.Getenv("POSTGRES_DB"),
 		PostgresHost:          os.Getenv("POSTGRES_HOST"),
 		PostgresPort:          os.Getenv("POSTGRES_PORT"),
+		KafkaBrokers:          os.Getenv("KAFKA_BROKERS"),
+		KafkaTopic:            os.Getenv("KAFKA_TOPIC"),
 	}
 }

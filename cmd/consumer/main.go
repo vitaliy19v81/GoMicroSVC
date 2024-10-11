@@ -1,51 +1,26 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"github.com/segmentio/kafka-go"
+	"go_microsvc/config"
 	"go_microsvc/database"
-	"go_microsvc/models"
+	"go_microsvc/services"
 	"log"
 )
 
 func main() {
-	// Настраиваем Kafka Reader напрямую с использованием именованных полей
-	r := kafka.Reader{
-		Addr:    kafka.TCP("localhost:9092"), // Адреса брокеров Kafka
-		Topic:   "message_topic",             // Название топика
-		GroupID: "my_group",                  // Идентификатор группы консьюмеров
+	// Загрузка конфигурации из файла или переменных окружения
+	cfg := config.LoadConfig()
+
+	// Подключение к базе данных PostgreSQL с использованием параметров из конфигурации
+	db, err := database.ConnectDB(cfg.PostgresUser, cfg.PostgresPassword, cfg.PostgresDB, cfg.PostgresHost, cfg.PostgresPort)
+	if err != nil {
+		log.Fatalf("Ошибка подключения к базе данных: %v", err)
 	}
 
-	// Используем defer для закрытия reader с обработкой ошибок
-	defer func() {
-		if err := r.Close(); err != nil {
-			log.Printf("Ошибка при закрытии reader: %v", err)
-		}
-	}()
-
-	for {
-		// Читаем сообщение из Kafka
-		m, err := r.ReadMessage(context.Background())
-		if err != nil {
-			log.Fatalf("Не удалось прочитать сообщение: %v", err)
-		}
-
-		// Декодируем сообщение из формата JSON в структуру модели Message
-		var msg models.Message
-		if err := json.Unmarshal(m.Value, &msg); err != nil {
-			log.Printf("Ошибка при десериализации сообщения: %v", err)
-			continue
-		}
-
-		// Логируем полученное сообщение
-		log.Printf("Получено сообщение: %s", msg.Content)
-
-		// Обновляем статус сообщения в базе данных как "обработанное"
-		msg.Processed = true
-		if err := database.DB.Save(&msg).Error; err != nil {
-			log.Printf("Ошибка при сохранении сообщения в базу данных: %v", err)
-			continue
-		}
+	// Настраиваем Kafka Reader и передаем его в сервис для обработки сообщений
+	err = services.ReadMessages1(db, cfg.KafkaBootstrapServers, cfg.KafkaTopic)
+	// "my_group" группа убрана пока
+	if err != nil {
+		log.Fatalf("Ошибка чтения сообщений из Kafka: %v", err)
 	}
 }
