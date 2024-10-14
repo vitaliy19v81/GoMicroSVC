@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"go_microsvc/config"
 	"go_microsvc/database"
 	"go_microsvc/services"
@@ -17,10 +18,12 @@ func main() {
 		log.Fatalf("Ошибка подключения к базе данных: %v", err)
 	}
 
+	ctx := context.Background()
 	// Настраиваем Kafka Reader и передаем его в сервис для обработки сообщений
-	err = services.ReadMessages1(db, cfg.KafkaBootstrapServers, cfg.KafkaTopic)
+	err = services.ReadMessages2(ctx, db, cfg.KafkaBootstrapServers, cfg.KafkaTopic)
 	// "my_group" группа убрана пока
 	if err != nil {
 		log.Fatalf("Ошибка чтения сообщений из Kafka: %v", err)
 	}
+
 }

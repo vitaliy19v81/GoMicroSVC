@@ -131,13 +131,15 @@ func GetMessages(c *fiber.Ctx, db *database.Database) error {
 //// @Summary Чтение сообщений из Kafka
 //// @Description Функция для чтения сообщений из указанного топика Kafka и обновления их статуса в базе данных
 //// @Tags Kafka
-//// @Param brokers query string true "Адреса брокеров Kafka"
-//// @Param topic query string true "Название топика в Kafka"
 //// @Success 200 {string} string "Сообщения успешно прочитаны и обновлены"
 //// @Failure 400 {string} string "Ошибка чтения сообщения"
 //// @Failure 500 {string} string "Ошибка сохранения сообщения в базу данных"
 //// @Router /kafka/read [get]
 //func GetMessagesKafka(c *fiber.Ctx, db *database.Database) error {
+//
+//	// @Param brokers query string true "Адреса брокеров Kafka"
+//	// @Param topic query string true "Название топика в Kafka"
+//
 //	cfg := config.LoadConfig()
 //
 //	// Указываем количество сообщений, которое хотим прочитать из Kafka
@@ -153,6 +155,7 @@ func GetMessages(c *fiber.Ctx, db *database.Database) error {
 //
 //	return c.Status(http.StatusOK).JSON(messages)
 //}
+
 //
 //func GetMessagesKafka2(c *fiber.Ctx, db *database.Database) error {
 //	// Загрузка конфигурации из файла или переменных окружения
@@ -175,6 +178,7 @@ func GetMessages(c *fiber.Ctx, db *database.Database) error {
 //		"message": "Kafka consumer запущен в фоновом режиме",
 //	})
 //}
+
 //
 //// StopKafkaConsumer останавливает работу Kafka consumer
 //func StopKafkaConsumer(c *fiber.Ctx) error {

@@ -47,3 +47,5 @@ Thumbs.db
 # Файлы и каталоги, связанные с модулем Go
 go.sum
 vendor/
+
+nvg/
