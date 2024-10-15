@@ -1,4 +1,7 @@
 definitions:
+  fiber.Map:
+    additionalProperties: true
+    type: object
   gorm.DeletedAt:
     properties:
       time:
@@ -63,11 +66,15 @@ paths:
         "400":
           description: Неверный формат данных
           schema:
-            type: string
-        "500":
-          description: Ошибка сервера
+            $ref: '#/definitions/fiber.Map'
+        "422":
+          description: Ошибка валидации данных
           schema:
-            type: string
+            $ref: '#/definitions/fiber.Map'
+        "500":
+          description: Ошибка сервера или Kafka
+          schema:
+            $ref: '#/definitions/fiber.Map'
       summary: Создание сообщения
       tags:
       - Api
@@ -89,16 +96,20 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Успешное получение сообщений
           schema:
             items:
               $ref: '#/definitions/models.Message'
             type: array
+        "400":
+          description: Неверные параметры запроса
+          schema:
+            $ref: '#/definitions/fiber.Map'
         "500":
           description: Ошибка сервера
           schema:
-            type: string
-      summary: Получение списка сообщений
+            $ref: '#/definitions/fiber.Map'
+      summary: Получение списка сообщений из базы данных
       tags:
       - Api
   /api/stats:
@@ -117,7 +128,7 @@ paths:
           description: Ошибка сервера
           schema:
             type: string
-      summary: Получение статистики
+      summary: Получение статистики обработанных сообщений consumer-ом
       tags:
       - Api
 swagger: "2.0"

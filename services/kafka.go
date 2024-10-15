@@ -1,3 +1,4 @@
+// Package services kafka.go
 package services
 
 import (
@@ -6,7 +7,7 @@ import (
 	"errors"
 	"github.com/segmentio/kafka-go"
 	"go_microsvc/database"
-	_ "go_microsvc/docs" // Импортируйте сгенерированные Swagger-документы
+	_ "go_microsvc/docs" // Сгенерированные Swagger-документы
 	"go_microsvc/models"
 	"log" // Для логирования
 	"time"
@@ -36,9 +37,8 @@ func SendMessage(brokers string, topic string, message interface{}) error {
 	// Преобразуем сообщение в JSON
 	msg, err := json.Marshal(message)
 	if err != nil {
-		// Логируем ошибку сериализации и возвращаем её для дальнейшей обработки
 		log.Printf("Ошибка сериализации сообщения: %v", err)
-		return err // Возвращаем ошибку для обработки в вызывающей функции
+		return err
 	}
 
 	// Отправляем сообщение в Kafka
@@ -49,12 +49,10 @@ func SendMessage(brokers string, topic string, message interface{}) error {
 
 	// Проверяем на наличие ошибок при отправке сообщения
 	if err != nil {
-		// Логируем ошибку отправки и возвращаем её
 		log.Printf("Ошибка отправки сообщения в Kafka: %v", err)
 		return err
 	}
 
-	// Логируем успешную отправку
 	log.Println("Сообщение успешно отправлено в Kafka")
 	return nil
 }

@@ -8,8 +8,6 @@ import (
 	"log"                     // Для логирования ошибок и успешных подключений
 )
 
-//var DB *gorm.DB // Глобальная переменная для хранения экземпляра подключения к базе данных
-
 // Database - структура для хранения экземпляра базы данных
 type Database struct {
 	*gorm.DB
@@ -22,7 +20,6 @@ func ConnectDB(user, password, dbname, host, port string) (*Database, error) {
 
 	var err error
 	// Пытаемся подключиться к базе данных через GORM
-	//DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	// Проверяем на наличие ошибки при подключении
@@ -37,12 +34,6 @@ func ConnectDB(user, password, dbname, host, port string) (*Database, error) {
 
 	// Это должен быть код, который выполняется при инициализации приложения
 	err = db.AutoMigrate(&models.Message{})
-	if err != nil {
-		log.Fatalf("Ошибка миграции базы данных: %v", err)
-	}
-
-	// Это должен быть код, который выполняется при инициализации приложения
-	err = db.AutoMigrate(&models.CreateMessageRequest{})
 	if err != nil {
 		log.Fatalf("Ошибка миграции базы данных: %v", err)
 	}

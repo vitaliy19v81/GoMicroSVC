@@ -49,13 +49,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Неверный формат данных",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/fiber.Map"
+                        }
+                    },
+                    "422": {
+                        "description": "Ошибка валидации данных",
+                        "schema": {
+                            "$ref": "#/definitions/fiber.Map"
                         }
                     },
                     "500": {
-                        "description": "Ошибка сервера",
+                        "description": "Ошибка сервера или Kafka",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/fiber.Map"
                         }
                     }
                 }
@@ -70,7 +76,7 @@ const docTemplate = `{
                 "tags": [
                     "Api"
                 ],
-                "summary": "Получение списка сообщений",
+                "summary": "Получение списка сообщений из базы данных",
                 "parameters": [
                     {
                         "type": "integer",
@@ -89,7 +95,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Успешное получение сообщений",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -97,10 +103,16 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "400": {
+                        "description": "Неверные параметры запроса",
+                        "schema": {
+                            "$ref": "#/definitions/fiber.Map"
+                        }
+                    },
                     "500": {
                         "description": "Ошибка сервера",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/fiber.Map"
                         }
                     }
                 }
@@ -115,7 +127,7 @@ const docTemplate = `{
                 "tags": [
                     "Api"
                 ],
-                "summary": "Получение статистики",
+                "summary": "Получение статистики обработанных сообщений consumer-ом",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -137,6 +149,10 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "fiber.Map": {
+            "type": "object",
+            "additionalProperties": true
+        },
         "gorm.DeletedAt": {
             "type": "object",
             "properties": {
