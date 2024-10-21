@@ -26,13 +26,34 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // Гарантируем, что контекст будет отменен при выходе из main
 
+	//// Запускаем команду для создания топика
+	//err := createKafkaTopic(cfg.KafkaBootstrapServers, cfg.KafkaTopic, 1, 1)
+	//if err != nil {
+	//	log.Fatalf("Ошибка при создании топика: %v", err)
+	//}
+
+	//if err := createTopic(cfg.KafkaBootstrapServers, cfg.KafkaTopic); err != nil {
+	//	log.Fatalf("Ошибка при создании топика: %v", err)
+	//}
+	//log.Println("Топик успешно создан!")
+
 	// 3. Подключение к базе данных
 	db, err := database.ConnectDB(cfg.PostgresUser, cfg.PostgresPassword, cfg.PostgresDB, cfg.PostgresHost, cfg.PostgresPort)
 	if err != nil {
 		log.Fatalf("Ошибка подключения к базе данных: %v", err)
 	}
 
-	// 4. Создание нового Fiber приложения
+	// 4. Запуск Kafka consumer в отдельной горутине
+	go services.StartKafkaConsumer(ctx, db, cfg.KafkaBootstrapServers, cfg.KafkaTopic)
+
+	// 5. Запуск Kafka producer в отдельной горутине
+	go func() {
+		if err := services.NewKafkaProducer(ctx, cfg.KafkaBootstrapServers, cfg.KafkaTopic); err != nil {
+			log.Printf("Ошибка в работе Kafka Producer: %v", err)
+		}
+	}()
+
+	// 6. Создание нового Fiber приложения
 	app := fiber.New()
 
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -45,36 +66,33 @@ func main() {
 	// Маршрут для Swagger
 	app.Get("/docs/*", fiberSwagger.WrapHandler)
 
-	// 5. Настройка маршрутов приложения из отдельного пакета
+	// 7. Настройка маршрутов приложения из отдельного пакета
 	routes.SetupRoutes(app, db)
 
-	// 6. Обработка сигнала завершения для корректного завершения работы
+	// 8. Обработка сигнала завершения для корректного завершения работы
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	// 7. Ожидание сигнала завершения
+	// 9. Ожидание сигнала завершения
 	go func() {
 		<-c
 		log.Println("Завершение работы...")
-		cancel() // Отмена контекста, что приведет к завершению Kafka consumer
+		cancel() // Отмена контекста, что приведет к завершению Kafka consumer и producer
 	}()
 
-	// 8. Запуск Kafka consumer в отдельной горутине
-	go services.StartKafkaConsumer(ctx, db, cfg.KafkaBootstrapServers, cfg.KafkaTopic)
-
-	// 9. Горутина для запуска HTTP сервера Fiber
+	// 10. Горутина для запуска HTTP сервера Fiber
 	go func() {
 		if err := app.Listen(":8080"); err != nil {
 			log.Fatalf("Ошибка запуска HTTP сервера: %v", err)
 		}
 	}()
 
-	// 10. Ожидание завершения всех процессов и корректное завершение программы
+	// 11. Ожидание завершения всех процессов и корректное завершение программы
 	<-ctx.Done() // Ожидание отмены контекста
 
 	log.Println("Контекст отменен. Завершение работы...")
 
-	// 11. Закрытие приложения Fiber с передачей контекста
+	// 12. Закрытие приложения Fiber с передачей контекста
 	if err := app.ShutdownWithContext(ctx); err != nil {
 		log.Printf("Ошибка при завершении работы Fiber: %v", err)
 	}
@@ -85,3 +103,51 @@ func main() {
 	log.Println("Все процессы завершены. Завершение программы.")
 	os.Exit(0)
 }
+
+//func createTopic(brokers string, topic string) error {
+//	conn, err := kafka.Dial("tcp", brokers)
+//	if err != nil {
+//		return err
+//	}
+//	defer conn.Close()
+//
+//	// Здесь вы можете настроить количество партиций и реплик
+//	partitions := 1
+//	replicationFactor := 1
+//
+//	if err := conn.CreatePartitions(topic, partitions, replicationFactor); err != nil {
+//		return err
+//	}
+//	return nil
+//}
+
+//func addKafkaToPath() {
+//	// Добавляем путь к Kafka в переменную окружения PATH
+//	err := os.Setenv("PATH", "/usr/local/kafka/bin:"+os.Getenv("PATH"))
+//	if err != nil {
+//		return
+//	}
+//}
+//
+//// createKafkaTopic создает топик в Kafka
+//func createKafkaTopic(bootstrapServer, topic string, replicationFactor, partitions int) error {
+//	addKafkaToPath()
+//
+//	// Формируем команду для создания топика
+//	cmd := exec.Command("kafka-topics.sh",
+//		"--create",
+//		"--bootstrap-server", bootstrapServer,
+//		"--replication-factor", strconv.Itoa(replicationFactor),
+//		"--partitions", strconv.Itoa(partitions),
+//		"--topic", topic)
+//
+//	// Выполняем команду и получаем стандартный вывод и ошибки
+//	output, err := cmd.CombinedOutput()
+//	if err != nil {
+//		return err
+//	}
+//
+//	// Логируем вывод команды
+//	log.Println(string(output))
+//	return nil
+//}

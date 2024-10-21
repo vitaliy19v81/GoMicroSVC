@@ -5,7 +5,6 @@ go 1.22
 toolchain go1.23.2
 
 require (
-	github.com/arsmn/fiber-swagger/v2 v2.31.1
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/gofiber/swagger v1.1.0
 	github.com/joho/godotenv v1.5.1
