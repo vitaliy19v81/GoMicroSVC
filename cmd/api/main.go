@@ -3,8 +3,10 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger" // Импортируем пакет для Swagger
+	"github.com/segmentio/kafka-go"
 	"github.com/swaggo/fiber-swagger"
 	"go_microsvc/config"   // Импортируем пакет для загрузки конфигурации
 	"go_microsvc/database" // Импортируем пакет для подключения к базе данных
@@ -12,8 +14,10 @@ import (
 	"go_microsvc/routes"
 	"go_microsvc/services"
 	"log" // Импортируем пакет для логирования
+	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
@@ -26,16 +30,11 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // Гарантируем, что контекст будет отменен при выходе из main
 
-	//// Запускаем команду для создания топика
-	//err := createKafkaTopic(cfg.KafkaBootstrapServers, cfg.KafkaTopic, 1, 1)
-	//if err != nil {
-	//	log.Fatalf("Ошибка при создании топика: %v", err)
-	//}
-
-	//if err := createTopic(cfg.KafkaBootstrapServers, cfg.KafkaTopic); err != nil {
-	//	log.Fatalf("Ошибка при создании топика: %v", err)
-	//}
-	//log.Println("Топик успешно создан!")
+	// Вызов функции создания топика
+	err := createKafkaTopic("kafka:9092", "new-topic-2", 1, 1)
+	if err != nil {
+		log.Fatalf("Ошибка: %v\n", err)
+	}
 
 	// 3. Подключение к базе данных
 	db, err := database.ConnectDB(cfg.PostgresUser, cfg.PostgresPassword, cfg.PostgresDB, cfg.PostgresHost, cfg.PostgresPort)
@@ -104,50 +103,54 @@ func main() {
 	os.Exit(0)
 }
 
-//func createTopic(brokers string, topic string) error {
-//	conn, err := kafka.Dial("tcp", brokers)
-//	if err != nil {
-//		return err
-//	}
-//	defer conn.Close()
-//
-//	// Здесь вы можете настроить количество партиций и реплик
-//	partitions := 1
-//	replicationFactor := 1
-//
-//	if err := conn.CreatePartitions(topic, partitions, replicationFactor); err != nil {
-//		return err
-//	}
-//	return nil
-//}
+// Функция для создания топика в Kafka
+func createKafkaTopic(brokerAddress, topic string, numPartitions, replicationFactor int) error {
+	log.Printf("Подключение к брокеру Kafka: %s\n", brokerAddress)
 
-//func addKafkaToPath() {
-//	// Добавляем путь к Kafka в переменную окружения PATH
-//	err := os.Setenv("PATH", "/usr/local/kafka/bin:"+os.Getenv("PATH"))
-//	if err != nil {
-//		return
-//	}
-//}
-//
-//// createKafkaTopic создает топик в Kafka
-//func createKafkaTopic(bootstrapServer, topic string, replicationFactor, partitions int) error {
-//	addKafkaToPath()
-//
-//	// Формируем команду для создания топика
-//	cmd := exec.Command("kafka-topics.sh",
-//		"--create",
-//		"--bootstrap-server", bootstrapServer,
-//		"--replication-factor", strconv.Itoa(replicationFactor),
-//		"--partitions", strconv.Itoa(partitions),
-//		"--topic", topic)
-//
-//	// Выполняем команду и получаем стандартный вывод и ошибки
-//	output, err := cmd.CombinedOutput()
-//	if err != nil {
-//		return err
-//	}
-//
-//	// Логируем вывод команды
-//	log.Println(string(output))
-//	return nil
-//}
+	// Устанавливаем соединение с брокером Kafka
+	conn, err := kafka.Dial("tcp", brokerAddress)
+	if err != nil {
+		return fmt.Errorf("ошибка подключения к Kafka: %v", err)
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("Ошибка закрытия соединения с брокером: %v\n", err)
+		}
+	}()
+
+	// Получаем информацию о контроллере кластера
+	controller, err := conn.Controller()
+	if err != nil {
+		return fmt.Errorf("ошибка получения контроллера Kafka: %v", err)
+	}
+	log.Printf("Контроллер Kafka: %s:%d\n", controller.Host, controller.Port)
+
+	// Устанавливаем соединение с контроллером
+	controllerConn, err := kafka.Dial("tcp", net.JoinHostPort(controller.Host, strconv.Itoa(controller.Port)))
+	if err != nil {
+		return fmt.Errorf("ошибка подключения к контроллеру Kafka: %v", err)
+	}
+	defer func() {
+		if err := controllerConn.Close(); err != nil {
+			log.Printf("Ошибка закрытия соединения с контроллером: %v\n", err)
+		}
+	}()
+
+	// Конфигурация нового топика
+	topicConfigs := []kafka.TopicConfig{
+		{
+			Topic:             topic,
+			NumPartitions:     numPartitions,
+			ReplicationFactor: replicationFactor,
+		},
+	}
+
+	// Создаем топик
+	err = controllerConn.CreateTopics(topicConfigs...)
+	if err != nil {
+		return fmt.Errorf("ошибка создания топика: %v", err)
+	}
+
+	log.Printf("Топик успешно создан: %s\n", topic)
+	return nil
+}
